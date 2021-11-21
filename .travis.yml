@@ -14,11 +14,11 @@ env:
 matrix:
   include:
     - os: linux
-      dist: travis
+      dist: focal
       sudo: required
       compiler: clang
     - os: linux
-      dist: travis
+      dist: focal
       sudo: required
       compiler: gcc
       env: DEBIAN_BUILD=true
