@@ -15,7 +15,7 @@ static const size_t SAMPLES_BUF_SIZE = 1024 * 2;
 class ATTR_DLL_LOCAL CEncoderFlac : public kodi::addon::CInstanceAudioEncoder
 {
 public:
-  CEncoderFlac(KODI_HANDLE instance, const std::string& version);
+  CEncoderFlac(const kodi::addon::IInstanceInfo& instance);
   ~CEncoderFlac() override;
 
   bool Start(const kodi::addon::AudioEncoderInfoTag& tag) override;
@@ -43,8 +43,8 @@ private:
   FLAC__int32 m_samplesBuf[SAMPLES_BUF_SIZE];
 };
 
-CEncoderFlac::CEncoderFlac(KODI_HANDLE instance, const std::string& version)
-  : CInstanceAudioEncoder(instance, version), m_tellPos(0)
+CEncoderFlac::CEncoderFlac(const kodi::addon::IInstanceInfo& instance)
+  : CInstanceAudioEncoder(instance), m_tellPos(0)
 {
   m_metadata[0] = nullptr;
   m_metadata[1] = nullptr;
@@ -86,7 +86,7 @@ bool CEncoderFlac::Start(const kodi::addon::AudioEncoderInfoTag& tag)
   ok &= FLAC__stream_encoder_set_bits_per_sample(m_encoder, tag.GetBitsPerSample());
   ok &= FLAC__stream_encoder_set_sample_rate(m_encoder, tag.GetSamplerate());
   ok &= FLAC__stream_encoder_set_total_samples_estimate(m_encoder, tag.GetTrackLength() / 4);
-  ok &= FLAC__stream_encoder_set_compression_level(m_encoder, kodi::GetSettingInt("level"));
+  ok &= FLAC__stream_encoder_set_compression_level(m_encoder, kodi::addon::GetSettingInt("level"));
 
   // now add some metadata
   FLAC__StreamMetadata_VorbisComment_Entry entry;
@@ -101,8 +101,8 @@ bool CEncoderFlac::Start(const kodi::addon::AudioEncoderInfoTag& tag)
         !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUM",
                                                                         tag.GetAlbum().c_str()) ||
         !FLAC__metadata_object_vorbiscomment_append_comment(m_metadata[0], entry, false) ||
-        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "ALBUMARTIST",
-                                                                        tag.GetAlbumArtist().c_str()) ||
+        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(
+            &entry, "ALBUMARTIST", tag.GetAlbumArtist().c_str()) ||
         !FLAC__metadata_object_vorbiscomment_append_comment(m_metadata[0], entry, false) ||
         !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "TITLE",
                                                                         tag.GetTitle().c_str()) ||
@@ -110,11 +110,11 @@ bool CEncoderFlac::Start(const kodi::addon::AudioEncoderInfoTag& tag)
         !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "GENRE",
                                                                         tag.GetGenre().c_str()) ||
         !FLAC__metadata_object_vorbiscomment_append_comment(m_metadata[0], entry, false) ||
-        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "TRACKNUMBER",
-                                                                        std::to_string(tag.GetTrack()).c_str()) ||
+        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(
+            &entry, "TRACKNUMBER", std::to_string(tag.GetTrack()).c_str()) ||
         !FLAC__metadata_object_vorbiscomment_append_comment(m_metadata[0], entry, false) ||
-        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "DATE",
-                                                                        tag.GetReleaseDate().c_str()) ||
+        !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(
+            &entry, "DATE", tag.GetReleaseDate().c_str()) ||
         !FLAC__metadata_object_vorbiscomment_append_comment(m_metadata[0], entry, false) ||
         !FLAC__metadata_object_vorbiscomment_entry_from_name_value_pair(&entry, "COMMENT",
                                                                         tag.GetComment().c_str()) ||
@@ -243,20 +243,14 @@ class ATTR_DLL_LOCAL CMyAddon : public kodi::addon::CAddonBase
 {
 public:
   CMyAddon() = default;
-  ADDON_STATUS CreateInstance(int instanceType,
-                              const std::string& instanceID,
-                              KODI_HANDLE instance,
-                              const std::string& version,
-                              KODI_HANDLE& addonInstance) override;
+  ADDON_STATUS CreateInstance(const kodi::addon::IInstanceInfo& instance,
+                              KODI_ADDON_INSTANCE_HDL& hdl) override;
 };
 
-ADDON_STATUS CMyAddon::CreateInstance(int instanceType,
-                                      const std::string& instanceID,
-                                      KODI_HANDLE instance,
-                                      const std::string& version,
-                                      KODI_HANDLE& addonInstance)
+ADDON_STATUS CMyAddon::CreateInstance(const kodi::addon::IInstanceInfo& instance,
+                                      KODI_ADDON_INSTANCE_HDL& hdl)
 {
-  addonInstance = new CEncoderFlac(instance, version);
+  hdl = new CEncoderFlac(instance);
   return ADDON_STATUS_OK;
 }
 
